@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.springboot.StandaloneHelloControllerTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-10-30T05:35:05.384Z" hostname="MacBookPro.csumb.edu" time="0.006">
+  <properties/>
+  <testcase name="helloEndpointWithStandaloneMockMvc()" classname="com.example.springboot.StandaloneHelloControllerTest" time="0.006"/>
+  <system-out><![CDATA[2025-10-29T22:35:05.390-07:00  INFO 28259 --- [Forge_Focus_Backend] [    Test worker] o.s.mock.web.MockServletContext          : Initializing Spring TestDispatcherServlet ''
+2025-10-29T22:35:05.390-07:00  INFO 28259 --- [Forge_Focus_Backend] [    Test worker] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2025-10-29T22:35:05.390-07:00  INFO 28259 --- [Forge_Focus_Backend] [    Test worker] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 0 ms
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
