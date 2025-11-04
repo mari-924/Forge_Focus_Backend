@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7e059cc4-1a04-4f7e-bd50-9fe5cd9e31e7" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/focusforge/controllers/UserController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="7e059cc4-1a04-4f7e-bd50-9fe5cd9e31e7" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -117,7 +114,7 @@
       <option name="presentableId" value="Default" />
       <updated>1761248440705</updated>
       <workItem from="1761802042989" duration="5297000" />
-      <workItem from="1762291208370" duration="601000" />
+      <workItem from="1762291208370" duration="935000" />
     </task>
     <servers />
   </component>
