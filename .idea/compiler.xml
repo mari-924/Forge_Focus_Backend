@@ -10,30 +10,6 @@
         <module name="Forge_Focus_Backend.main" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="com.example.demo" target="17" />
-      <module name="Forge_Focus_Backend" target="17" />
-      <module name="Forge_Focus_Backend.main" target="17" />
-      <module name="Forge_Focus_Backend.test" target="17" />
-      <module name="springboot" target="17" />
-      <module name="springboot.main" target="17" />
-      <module name="springboot.test" target="17" />
-    </bytecodeTargetLevel>
-  </component>
-  <component name="JavacSettings">
-    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="Forge_Focus_Backend" options="-parameters" />
-      <module name="Forge_Focus_Backend.main" options="-parameters" />
-      <module name="Forge_Focus_Backend.test" options="-parameters" />
-      <module name="com.example.demo" options="-parameters" />
-      <module name="com.example.demo.main" options="-parameters" />
-      <module name="com.example.demo.test" options="-parameters" />
-      <module name="demo" options="-parameters" />
-      <module name="demo.main" options="-parameters" />
-      <module name="demo.test" options="-parameters" />
-      <module name="springboot" options="-parameters" />
-      <module name="springboot.main" options="-parameters" />
-      <module name="springboot.test" options="-parameters" />
-    </option>
+    <bytecodeTargetLevel target="17" />
   </component>
 </project>
