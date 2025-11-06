@@ -10,11 +10,8 @@
         <module name="Forge_Focus_Backend.main" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
+    <bytecodeTargetLevel target="17">
       <module name="com.example.demo" target="17" />
-      <module name="Forge_Focus_Backend" target="17" />
-      <module name="Forge_Focus_Backend.main" target="17" />
-      <module name="Forge_Focus_Backend.test" target="17" />
       <module name="springboot" target="17" />
       <module name="springboot.main" target="17" />
       <module name="springboot.test" target="17" />
