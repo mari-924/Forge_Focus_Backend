@@ -14,20 +14,21 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
     private static final String GOOGLE_CLIENT_ID = System.getenv()
-            .getOrDefault("GOOGLE_OAUTH_CLIENT_ID", "583541403083-ip677njslglhptvtpq2fshqpv66g3j7q.apps.googleusercontent.com");
+            .getOrDefault("GOOGLE_OAUTH_CLIENT_ID",
+                    "583541403083-ip677njslglhptvtpq2fshqpv66g3j7q.apps.googleusercontent.com");
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**",
-                                "/ping"
-                            ).permitAll()
+                        // 👇 These routes are public (no auth required)
+                        .requestMatchers("/", "/ping", "/api/auth/**").permitAll()
+                        // 👇 Everything else requires a valid JWT
                         .anyRequest().authenticated()
                 )
-      
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
                                 .jwkSetUri("https://www.googleapis.com/oauth2/v3/certs")
@@ -36,13 +37,12 @@ public class SecurityConfig {
 
         return http.build();
     }
+
     @Bean
     public JwtDecoder jwtDecoder() {
-        // ✅ Use Google's OIDC issuer (handles key rotation & validations)
         NimbusJwtDecoder decoder =
                 (NimbusJwtDecoder) JwtDecoders.fromOidcIssuerLocation("https://accounts.google.com");
 
-        // ✅ Add an audience validator for your mobile client id
         OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer("https://accounts.google.com");
         OAuth2TokenValidator<Jwt> audienceValidator = jwt -> {
             String aud = jwt.getClaimAsString("aud");
