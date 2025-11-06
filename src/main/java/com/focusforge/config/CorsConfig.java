@@ -15,7 +15,7 @@ public class CorsConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOrigins(
-                                "https://cst438-d5640ff12bdc.herokuapp.com", // your deployed backend
+                                "https://focus-forge-cst438-38b937c199bc.herokuapp.com/", // your deployed backend
                                 "exp://localhost:19000", // optional for Expo dev
                                 "http://localhost:8081",  // optional local dev
                                 "http://10.0.2.2:8080"    // optional Android emulator

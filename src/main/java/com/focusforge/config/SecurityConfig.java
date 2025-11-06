@@ -45,9 +45,15 @@ public class SecurityConfig {
 
         OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer("https://accounts.google.com");
         OAuth2TokenValidator<Jwt> audienceValidator = jwt -> {
-            String aud = jwt.getClaimAsString("aud");
-            if (GOOGLE_CLIENT_ID.equals(aud)) {
+            Object audClaim = jwt.getClaims().get("aud");
+            if (audClaim instanceof String aud && GOOGLE_CLIENT_ID.equals(aud)) {
                 return OAuth2TokenValidatorResult.success();
+            } else if (audClaim instanceof Iterable<?> audiences && audiences.iterator().hasNext()) {
+                for (Object a : audiences) {
+                    if (GOOGLE_CLIENT_ID.equals(a.toString())) {
+                        return OAuth2TokenValidatorResult.success();
+                    }
+                }
             }
             return OAuth2TokenValidatorResult.failure(
                     new OAuth2Error("invalid_token", "Invalid audience", "https://developers.google.com/identity")
