@@ -2,6 +2,7 @@ package com.focusforge.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
@@ -25,10 +26,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         // 👇 These routes are public (no auth required)
-                        .requestMatchers("/", "/ping", "/api/auth/**").permitAll()
+                        .requestMatchers("/", "/login**", "/error",
+                                "/oauth2/**",                    // <-- important
+                                "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
                         // 👇 Everything else requires a valid JWT
                         .anyRequest().authenticated()
                 )
+                .oauth2Login(Customizer.withDefaults())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
                                 .jwkSetUri("https://www.googleapis.com/oauth2/v3/certs")
