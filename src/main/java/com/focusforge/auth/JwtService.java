@@ -2,6 +2,7 @@ package com.focusforge.auth;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -11,7 +12,8 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private static final String SECRET = "replace_this_with_a_secure_secret";
+    @Value("${jwt.secret}")
+    private String SECRET;
 
     public String generateToken(String email) {
         return Jwts.builder()
