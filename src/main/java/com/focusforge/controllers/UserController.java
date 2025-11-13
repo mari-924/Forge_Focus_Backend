@@ -3,7 +3,10 @@ package com.focusforge.controllers;
 import com.focusforge.models.User;
 import com.focusforge.repositories.UserRepository;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
@@ -27,5 +30,9 @@ public class UserController {
     @GetMapping("/{id}")
     public User getUser(@PathVariable Long id) {
         return userRepository.findById(id).orElse(null);
+    }
+    @GetMapping("/me")
+    public Object userInfo(@AuthenticationPrincipal OidcUser user) {
+        return user.getClaims(); // includes email, name, picture, etc.
     }
 }
