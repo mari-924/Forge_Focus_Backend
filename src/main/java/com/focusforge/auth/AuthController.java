@@ -3,6 +3,7 @@ package com.focusforge.auth;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,9 +43,13 @@ public class AuthController {
     }
 
 
-
     // --------- GITHUB (new) ----------
     // Body: { "token": "<github_access_token>" }
+    private final WebClient gh = WebClient.builder()
+            .baseUrl("https://api.github.com")
+            .defaultHeader("User-Agent", "focusforge-auth/1.0") // REQUIRED
+            .defaultHeader("Accept", "application/vnd.github+json")
+            .build();
     @PostMapping("/github")
     public ResponseEntity<?> verifyGithubToken(@RequestBody Map<String, String> body) {
         String token = body.get("token");
@@ -53,25 +58,31 @@ public class AuthController {
         }
 
         try {
-            // 1) Validate token by hitting /user
-            Map<String, Object> user = web.get()
-                    .uri("https://api.github.com/user")
+            // 1) /user
+            Map<String, Object> user = gh.get()
+                    .uri("/user")
                     .headers(h -> h.setBearerAuth(token))
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
 
             if (user == null || user.get("id") == null) {
-                return ResponseEntity.status(401).body("Invalid GitHub token");
+                return ResponseEntity.status(401).body("Invalid GitHub token (no user id)");
             }
 
-            // 2) Get verified, primary email (requires scope: user:email)
-            List<Map<String, Object>> emails = web.get()
-                    .uri("https://api.github.com/user/emails")
-                    .headers(h -> h.setBearerAuth(token))
-                    .retrieve()
-                    .bodyToMono(List.class)
-                    .block();
+            // 2) /user/emails (may require user:email)
+            List<Map<String, Object>> emails = null;
+            try {
+                emails = gh.get()
+                        .uri("/user/emails")
+                        .headers(h -> h.setBearerAuth(token))
+                        .retrieve()
+                        .bodyToMono(List.class)
+                        .block();
+            } catch (WebClientResponseException e) {
+                // 404 or 403 likely due to missing scope; we’ll fall back to user.email
+                System.out.println("GitHub /user/emails error: " + e.getStatusCode() + " " + e.getResponseBodyAsString());
+            }
 
             String email = null;
             if (emails != null) {
@@ -80,19 +91,33 @@ public class AuthController {
                         .map(e -> (String) e.get("email"))
                         .findFirst()
                         .orElse(null);
+                if (email == null && !emails.isEmpty()) {
+                    // pick any verified email if primary+verified not found
+                    email = emails.stream()
+                            .filter(e -> Boolean.TRUE.equals(e.get("verified")))
+                            .map(e -> (String) e.get("email"))
+                            .findFirst()
+                            .orElse(null);
+                }
             }
             if (email == null) {
-                Object maybe = user.get("email"); // sometimes provided
+                Object maybe = user.get("email"); // may be present if public email is set
                 if (maybe instanceof String s && !s.isBlank()) email = s;
             }
             if (email == null) {
-                return ResponseEntity.badRequest().body("GitHub email not available; ensure scope user:email");
+                return ResponseEntity.status(400).body("GitHub email not available. Ensure the token has scope 'user:email' or user has a public email.");
             }
 
             String jwt = jwtService.generateToken(email);
             return ResponseEntity.ok(Map.of("access_token", jwt));
 
+        } catch (WebClientResponseException e) {
+            // Show the real GitHub API error in logs
+            System.err.println("GitHub API error: " + e.getStatusCode() + " " + e.getResponseBodyAsString());
+            return ResponseEntity.status(e.getStatusCode().value())
+                    .body("GitHub token verification failed: " + e.getStatusText());
         } catch (Exception ex) {
+            ex.printStackTrace();
             return ResponseEntity.status(401).body("GitHub token verification failed");
         }
     }
