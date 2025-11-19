@@ -14,6 +14,7 @@ public class DebugController {
     @GetMapping("/me")
     public Map<String, Object> me(Authentication auth) {
         return Map.of("principal", auth == null ? null : auth.getPrincipal());
+
     }
 }
 
