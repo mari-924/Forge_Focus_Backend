@@ -38,7 +38,7 @@ public class UserController {
                     new NetHttpTransport(),
                     new GsonFactory()
             )
-                    .setAudience(Collections.singletonList("YOUR_WEB_CLIENT_ID_HERE")) // from Google Cloud Console
+                    .setAudience(Collections.singletonList("583541403083-ip677njslglhptvtpq2fshqpv66g3j7q.apps.googleusercontent.com")) // from Google Cloud Console
                     .build();
 
             GoogleIdToken idToken = verifier.verify(token);
