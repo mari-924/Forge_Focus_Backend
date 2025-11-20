@@ -34,8 +34,16 @@ public class AuthController {
             if (idToken == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Google token");
             }
-            String email = idToken.getPayload().getEmail();
-            String jwt = jwtService.generateToken(email);
+            var payload = idToken.getPayload();
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+            String picture = (String) payload.get("picture");
+            String googleId = payload.getSubject();
+            String jwt = jwtService.generateTokenWithClaims(email, Map.of(
+                    "name", name,
+                    "googleId", googleId,
+                    "picture", picture
+            ));
             return ResponseEntity.ok(Map.of("access_token", jwt));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token verification failed");
