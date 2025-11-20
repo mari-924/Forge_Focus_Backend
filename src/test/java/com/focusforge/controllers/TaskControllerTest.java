@@ -1,82 +1,83 @@
-
 package com.focusforge.controllers;
 
 import com.focusforge.models.Task;
 import com.focusforge.repositories.TaskRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(TaskController.class)
-public class TaskControllerTest {
-
-    @Autowired
-    private MockMvc mvc;
-
-    @MockBean
+class TaskControllerTest {
+    @Mock
     private TaskRepository taskRepository;
+    @InjectMocks
+    private TaskController controller;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Test
-    public void getAllTasks_returnsList() throws Exception {
-        Task task = new Task();
-        when(taskRepository.findAll()).thenReturn(List.of(task));
-
-        mvc.perform(get("/tasks").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(List.of(task))));
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void getTask_found() throws Exception {
+    void createTask_savesAndReturnsTask() {
+        Task task = new Task();
+        when(taskRepository.save(task)).thenReturn(task);
+        assertEquals(task, controller.createTask(task));
+    }
+
+    @Test
+    void getAllTasks_returnsList() {
+        Task t1 = new Task();
+        Task t2 = new Task();
+        when(taskRepository.findAll()).thenReturn(Arrays.asList(t1, t2));
+        List<Task> result = controller.getAllTasks();
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void getTask_returnsTask_whenExists() {
         Task task = new Task();
         when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
-
-        mvc.perform(get("/tasks/1").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(task)));
+        assertEquals(task, controller.getTask(1L));
     }
 
     @Test
-    public void getTask_notFound_returnsEmptyBody() throws Exception {
+    void getTask_returnsNull_whenNotExists() {
         when(taskRepository.findById(2L)).thenReturn(Optional.empty());
-
-        mvc.perform(get("/tasks/2").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().string(""));
+        assertNull(controller.getTask(2L));
     }
 
     @Test
-    public void markTaskComplete_updatesAndReturns() throws Exception {
+    void markTaskComplete_updatesAndReturnsTask() {
         Task task = new Task();
-        when(taskRepository.findById(3L)).thenReturn(Optional.of(task));
-        when(taskRepository.save(ArgumentMatchers.any(Task.class))).thenAnswer(inv -> inv.getArgument(0));
+        task.setIsCompleted(false);
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
+        when(taskRepository.save(task)).thenReturn(task);
 
-        mvc.perform(put("/tasks/3/complete").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.isCompleted").value(true))
-                .andExpect(jsonPath("$.completedAt").isNotEmpty());
+        Task result = controller.markTaskComplete(1L);
+
+        assertTrue(result.getIsCompleted());
+        assertNotNull(result.getCompletedAt());
+        verify(taskRepository, times(1)).save(task);
     }
 
     @Test
-    public void deleteTask_invokesRepositoryDelete() throws Exception {
-        mvc.perform(delete("/tasks/4"))
-                .andExpect(status().isOk());
+    void markTaskComplete_returnsNull_whenNotExists() {
+        when(taskRepository.findById(2L)).thenReturn(Optional.empty());
+        assertNull(controller.markTaskComplete(2L));
+    }
 
-        verify(taskRepository, times(1)).deleteById(4L);
+    @Test
+    void deleteTask_deletesById() {
+        controller.deleteTask(1L);
+        verify(taskRepository, times(1)).deleteById(1L);
     }
 }

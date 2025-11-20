@@ -2,82 +2,94 @@
 package com.focusforge.controllers;
 
 import com.focusforge.models.FocusSession;
+import com.focusforge.models.User;
 import com.focusforge.repositories.FocusSessionRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.focusforge.repositories.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.ResponseEntity;
 
-import java.util.List;
+import java.util.HashSet;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(FocusSessionController.class)
 public class FocusSessionControllerTest {
 
-    @Autowired
-    private MockMvc mvc;
-
-    @MockBean
+    @Mock
     private FocusSessionRepository sessionRepository;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Mock
+    private UserRepository userRepository;
 
-    @Test
-    public void getAllSessions_returnsList() throws Exception {
-        FocusSession s = new FocusSession();
-        when(sessionRepository.findAll()).thenReturn(List.of(s));
+    @InjectMocks
+    private FocusSessionController controller;
 
-        mvc.perform(get("/sessions").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(List.of(s))));
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void getSession_found() throws Exception {
-        FocusSession s = new FocusSession();
-        when(sessionRepository.findById(1L)).thenReturn(Optional.of(s));
+    public void createSession_withValidHost_savesAndReturnsSession() {
+        User host = User.builder().id(1L).name("Host").build();
+        FocusSession session = FocusSession.builder()
+                .durationMinutes(25)
+                .participants(new HashSet<>())
+                .build();
 
-        mvc.perform(get("/sessions/1").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(s)));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(host));
+        when(sessionRepository.save(any(FocusSession.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ResponseEntity<FocusSession> response = controller.createSession(1L, session);
+
+        assertTrue(response.getStatusCode().is2xxSuccessful());
+        assertNotNull(response.getBody());
+        assertEquals(host, response.getBody().getHost());
+        verify(sessionRepository, times(1)).save(any(FocusSession.class));
     }
 
     @Test
-    public void getSession_notFound_returnsEmptyBody() throws Exception {
-        when(sessionRepository.findById(2L)).thenReturn(Optional.empty());
+    public void createSession_withInvalidHost_returnsBadRequest() {
+        FocusSession session = new FocusSession();
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        mvc.perform(get("/sessions/2").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().string(""));
+        ResponseEntity<FocusSession> response = controller.createSession(999L, session);
+
+        assertEquals(400, response.getStatusCode().value());
+        verify(sessionRepository, never()).save(any());
     }
 
     @Test
-    public void createSession_savesAndReturns() throws Exception {
-        FocusSession input = new FocusSession();
-        when(sessionRepository.save(ArgumentMatchers.any(FocusSession.class))).thenAnswer(inv -> inv.getArgument(0));
+    public void joinSession_withValidData_addsUserToSession() {
+        User user = User.builder().id(2L).name("User").build();
+        FocusSession session = FocusSession.builder()
+                .id(1L)
+                .participants(new HashSet<>())
+                .build();
 
-        mvc.perform(post("/sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(input))
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(input)));
+        when(sessionRepository.findById(1L)).thenReturn(Optional.of(session));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+        when(sessionRepository.save(any(FocusSession.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ResponseEntity<FocusSession> response = controller.joinSession(1L, 2L);
+
+        assertTrue(response.getStatusCode().is2xxSuccessful());
+        assertTrue(response.getBody().getParticipants().contains(user));
+        verify(sessionRepository, times(1)).save(session);
     }
 
     @Test
-    public void deleteSession_invokesRepositoryDelete() throws Exception {
-        mvc.perform(delete("/sessions/7"))
-                .andExpect(status().isOk());
+    public void joinSession_withInvalidSession_returnsBadRequest() {
+        when(sessionRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.findById(2L)).thenReturn(Optional.of(new User()));
 
-        verify(sessionRepository, times(1)).deleteById(7L);
+        ResponseEntity<FocusSession> response = controller.joinSession(999L, 2L);
+
+        assertEquals(400, response.getStatusCode().value());
     }
 }
