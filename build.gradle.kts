@@ -29,8 +29,9 @@ dependencies {
 	runtimeOnly("com.h2database:h2") // optional for local dev
 
 	// --- Google API & HTTP ---
-	implementation("com.google.api-client:google-api-client:2.2.0")
-	implementation("com.google.http-client:google-http-client-gson:1.43.3")
+	implementation("com.google.api-client:google-api-client:2.4.0")
+	implementation("com.google.oauth-client:google-oauth-client-jetty:2.4.0")
+	implementation("com.google.http-client:google-http-client-jackson2:1.43.3")
 
 	// --- JWT Authentication ---
 	implementation("io.jsonwebtoken:jjwt-api:0.11.5")
