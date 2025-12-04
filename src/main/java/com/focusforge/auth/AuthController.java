@@ -94,11 +94,10 @@ public class AuthController {
         try {
             Map<String, Object> res = github.post()
                     .uri("/login/oauth/access_token")
-                    .bodyValue(Map.of(
-                            "client_id", clientId,
-                            "client_secret", clientSecret,
-                            "code", code
-                    ))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .bodyValue("client_id=" + clientId +
+                            "&client_secret=" + clientSecret +
+                            "&code=" + code)
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
