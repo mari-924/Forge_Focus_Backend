@@ -87,46 +87,44 @@ public class AuthController {
         String clientSecret = System.getenv("GITHUB_CLIENT_SECRET");
 
         System.out.println("=== GITHUB CALLBACK HIT ===");
-        System.out.println("Received code: " + code);
-        System.out.println("CLIENT ID: " + clientId);
-        System.out.println("CLIENT SECRET PRESENT: " + (clientSecret != null));
+        System.out.println("Received code=" + code);
+        System.out.println("CLIENT ID=" + clientId);
+        System.out.println("SECRET PRESENT=" + (clientSecret != null));
 
         try {
+            String body = "client_id=" + clientId +
+                    "&client_secret=" + clientSecret +
+                    "&code=" + code;
+
             Map<String, Object> res = github.post()
                     .uri("/login/oauth/access_token")
+                    .header("Accept", "application/json")
                     .header("Content-Type", "application/x-www-form-urlencoded")
-                    .bodyValue("client_id=" + clientId +
-                            "&client_secret=" + clientSecret +
-                            "&code=" + code)
+                    .bodyValue(body)
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
 
-            System.out.println("GitHub exchange response: " + res);
+            System.out.println("GitHub response: " + res);
 
             if (res == null || !res.containsKey("access_token")) {
-                return ResponseEntity.status(400)
-                        .body("Failed to exchange code: " + res);
+                return ResponseEntity.status(400).body("Failed to exchange code: " + res);
             }
 
             String accessToken = (String) res.get("access_token");
 
             URI deepLink = URI.create("forgefocus://redirect?token=" + accessToken);
-
             return ResponseEntity.status(302)
                     .header(HttpHeaders.LOCATION, deepLink.toString())
                     .build();
 
-        } catch (WebClientResponseException e) {
-            System.out.println("GitHub API error: " + e.getResponseBodyAsString());
-            return ResponseEntity.status(e.getStatusCode())
-                    .body("GitHub callback processing error: " + e.getResponseBodyAsString());
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500)
                     .body("GitHub callback processing error: " + e.getMessage());
         }
     }
+
 
     // ------------------------------------------------------------------------
     // GITHUB STEP 2: VERIFY ACCESS TOKEN (Mobile -> Backend)
