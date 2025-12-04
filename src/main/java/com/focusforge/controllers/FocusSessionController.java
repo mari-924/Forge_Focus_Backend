@@ -24,14 +24,35 @@ public class FocusSessionController {
 
     @PostMapping
     public ResponseEntity<FocusSession> createSession(
-            @RequestParam Long hostId,
+            @RequestParam(required = false) Long hostId,
+            @RequestParam(required = false) String hostEmail,
             @RequestBody FocusSession session) {
 
-        Optional<User> host = userRepository.findById(hostId);
-        if (host.isEmpty()) return ResponseEntity.badRequest().build();
+        if (hostId == null && (hostEmail == null || hostEmail.isBlank())) {
+            // You can customize this error body if you want
+            return ResponseEntity.badRequest().build();
+        }
 
-        session.setHost(host.get());
-        session.getParticipants().add(host.get()); // host joins automatically
+        Optional<User> hostOpt;
+
+        if (hostEmail != null && !hostEmail.isBlank()) {
+            hostOpt = userRepository.findByEmail(hostEmail);
+        } else {
+            hostOpt = userRepository.findById(hostId);
+        }
+
+        if (hostOpt.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        User host = hostOpt.get();
+
+        session.setHost(host);
+        session.getParticipants().add(host);
+
+        if (session.getIsPrev() == null) {
+            session.setIsPrev(false); // New sessions are not previous yet
+        }
 
         FocusSession saved = sessionRepository.save(session);
         return ResponseEntity.ok(saved);
@@ -65,21 +86,18 @@ public class FocusSessionController {
     }
     @GetMapping("/user/{email}")
     public ResponseEntity<UserSessionsResponse> getSessionsForUser(@PathVariable String email) {
+
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
-        // previous sessions (already done)
         var previous = sessionRepository.findByHostEmailAndIsPrev(email, true);
-
-        // scheduled/upcoming sessions (not yet completed)
         var scheduled = sessionRepository.findByHostEmailAndIsPrev(email, false);
 
         return ResponseEntity.ok(new UserSessionsResponse(previous, scheduled));
     }
 
-    // DTO to wrap two lists
     public record UserSessionsResponse(
             java.util.List<FocusSession> previous,
             java.util.List<FocusSession> scheduled
