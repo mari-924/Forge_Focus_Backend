@@ -18,9 +18,9 @@ public class FocusSession {
     private Long id;
 
     private String title;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
     private Integer durationMinutes;
+    private String audioFile;
+    private Boolean isPrev;
     private String notes;
 
     @ManyToOne(fetch = FetchType.LAZY)

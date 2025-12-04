@@ -32,10 +32,6 @@ public class FocusSessionController {
 
         session.setHost(host.get());
         session.getParticipants().add(host.get()); // host joins automatically
-        session.setStartTime(LocalDateTime.now());
-        if (session.getDurationMinutes() != null) {
-            session.setEndTime(session.getStartTime().plusMinutes(session.getDurationMinutes()));
-        }
 
         FocusSession saved = sessionRepository.save(session);
         return ResponseEntity.ok(saved);
@@ -56,4 +52,36 @@ public class FocusSessionController {
 
         return ResponseEntity.ok(session);
     }
+    @PatchMapping("/{id}/complete")
+    public ResponseEntity<FocusSession> markSessionComplete(@PathVariable Long id) {
+        Optional<FocusSession> opt = sessionRepository.findById(id);
+        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+
+        FocusSession session = opt.get();
+        session.setIsPrev(true);
+        FocusSession saved = sessionRepository.save(session);
+
+        return ResponseEntity.ok(saved);
+    }
+    @GetMapping("/user/{email}")
+    public ResponseEntity<UserSessionsResponse> getSessionsForUser(@PathVariable String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // previous sessions (already done)
+        var previous = sessionRepository.findByHostEmailAndIsPrev(email, true);
+
+        // scheduled/upcoming sessions (not yet completed)
+        var scheduled = sessionRepository.findByHostEmailAndIsPrev(email, false);
+
+        return ResponseEntity.ok(new UserSessionsResponse(previous, scheduled));
+    }
+
+    // DTO to wrap two lists
+    public record UserSessionsResponse(
+            java.util.List<FocusSession> previous,
+            java.util.List<FocusSession> scheduled
+    ) {}
 }
