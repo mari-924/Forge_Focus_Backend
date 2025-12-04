@@ -92,30 +92,38 @@ public class AuthController {
         System.out.println("SECRET PRESENT=" + (clientSecret != null));
 
         try {
-            String body = "client_id=" + clientId +
+            String form = "client_id=" + clientId +
                     "&client_secret=" + clientSecret +
                     "&code=" + code;
 
-            Map<String, Object> res = github.post()
+            // NOTE: Exchange MUST use body(String)
+            Map<String, Object> res = WebClient.builder()
+                    .baseUrl("https://github.com")
+                    .defaultHeader("Accept", "application/json")
+                    .defaultHeader("User-Agent", "focusforge-auth")
+                    .build()
+                    .post()
                     .uri("/login/oauth/access_token")
-                    .header("Accept", "application/json")
                     .header("Content-Type", "application/x-www-form-urlencoded")
-                    .bodyValue(body)
+                    .bodyValue(form)   // <-- critical!
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
 
-            System.out.println("GitHub response: " + res);
+            System.out.println("GitHub OAuth Exchange Response: " + res);
 
             if (res == null || !res.containsKey("access_token")) {
+                System.out.println("GitHub OAuth Exchange Failed: " + res);
                 return ResponseEntity.status(400).body("Failed to exchange code: " + res);
             }
 
             String accessToken = (String) res.get("access_token");
+            System.out.println("ACCESS TOKEN SUCCESSFULLY RECEIVED: " + accessToken);
 
-            URI deepLink = URI.create("forgefocus://redirect?token=" + accessToken);
+            URI deep = URI.create("forgefocus://redirect?token=" + accessToken);
+
             return ResponseEntity.status(302)
-                    .header(HttpHeaders.LOCATION, deepLink.toString())
+                    .header(HttpHeaders.LOCATION, deep.toString())
                     .build();
 
         } catch (Exception e) {
@@ -124,6 +132,7 @@ public class AuthController {
                     .body("GitHub callback processing error: " + e.getMessage());
         }
     }
+
 
 
     // ------------------------------------------------------------------------
