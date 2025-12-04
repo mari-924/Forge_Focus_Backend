@@ -86,8 +86,12 @@ public class AuthController {
         String clientId = System.getenv("GITHUB_CLIENT_ID");
         String clientSecret = System.getenv("GITHUB_CLIENT_SECRET");
 
+        System.out.println("=== GITHUB CALLBACK HIT ===");
+        System.out.println("Received code: " + code);
+        System.out.println("CLIENT ID: " + clientId);
+        System.out.println("CLIENT SECRET PRESENT: " + (clientSecret != null));
+
         try {
-            // Exchange code -> access_token
             Map<String, Object> res = github.post()
                     .uri("/login/oauth/access_token")
                     .bodyValue(Map.of(
@@ -99,23 +103,29 @@ public class AuthController {
                     .bodyToMono(Map.class)
                     .block();
 
+            System.out.println("GitHub exchange response: " + res);
+
             if (res == null || !res.containsKey("access_token")) {
-                System.err.println("GitHub exchange returned null or no access_token");
-                return ResponseEntity.status(400).body("Failed to exchange code");
+                return ResponseEntity.status(400)
+                        .body("Failed to exchange code: " + res);
             }
 
             String accessToken = (String) res.get("access_token");
 
-            // Redirect mobile app via deep link
             URI deepLink = URI.create("forgefocus://redirect?token=" + accessToken);
 
             return ResponseEntity.status(302)
                     .header(HttpHeaders.LOCATION, deepLink.toString())
                     .build();
 
+        } catch (WebClientResponseException e) {
+            System.out.println("GitHub API error: " + e.getResponseBodyAsString());
+            return ResponseEntity.status(e.getStatusCode())
+                    .body("GitHub callback processing error: " + e.getResponseBodyAsString());
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("GitHub callback processing error");
+            return ResponseEntity.status(500)
+                    .body("GitHub callback processing error: " + e.getMessage());
         }
     }
 
