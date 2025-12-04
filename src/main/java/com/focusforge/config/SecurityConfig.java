@@ -23,6 +23,7 @@ public class SecurityConfig {
                         .requestMatchers("/", "/login**", "/error",
                                 "/oauth2/**",     // for server-driven oauth if you use it
                                 "/api/auth/**",   // <-- allow your auth endpoints
+                                "/users/signin",
                                 "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
                         .anyRequest().authenticated()
                 )
