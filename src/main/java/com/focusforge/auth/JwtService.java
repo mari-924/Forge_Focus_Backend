@@ -9,8 +9,11 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
+import java.util.Map;
 
 @Service
 public class JwtService {
@@ -40,7 +43,15 @@ public class JwtService {
                 .signWith(signingKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
-
+    public String generateTokenWithClaims(String email, Map<String, Object> claims) {
+        return Jwts.builder()
+                .setSubject(email)
+                .addClaims(claims)
+                .setIssuedAt(new Date())
+                .setExpiration(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)))
+                .signWith(signingKey(), SignatureAlgorithm.HS512)
+                .compact();
+    }
     public String extractEmail(String token) {
         return getAllClaims(token).getSubject();
     }
