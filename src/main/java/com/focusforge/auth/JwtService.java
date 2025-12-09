@@ -53,7 +53,17 @@ public class JwtService {
                 .compact();
     }
     public String extractEmail(String token) {
-        return getAllClaims(token).getSubject();
+        Claims claims = getAllClaims(token);
+
+        System.out.println("🔵 extractEmail() → Claims: " + claims);
+
+        String email = claims.get("email", String.class);
+        System.out.println("🔵 extractEmail() → email claim: " + email);
+
+        if (email != null && !email.isBlank()) return email;
+
+        System.out.println("🔵 extractEmail() → using subject: " + claims.getSubject());
+        return claims.getSubject();
     }
 
     public boolean isTokenValid(String token) {

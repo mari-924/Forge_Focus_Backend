@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -73,65 +74,6 @@ public class AuthController {
         }
     }
 
-    // ------------------------------------------------------------------------
-    // GITHUB STEP 1: CALLBACK ENDPOINT (GitHub -> Backend)
-    // GitHub OAuth Apps REQUIRE an HTTPS redirect. This endpoint receives:
-    //   GET /api/auth/github/callback?code=XXXX
-    // Then exchanges code -> GitHub access token.
-    // Then redirects mobile back into the app via deep link.
-    // ------------------------------------------------------------------------
-    @GetMapping("/github/callback")
-    public ResponseEntity<?> githubCallback(@RequestParam String code) {
-
-        String clientId = System.getenv("GITHUB_CLIENT_ID");
-        String clientSecret = System.getenv("GITHUB_CLIENT_SECRET");
-
-        System.out.println("=== GITHUB CALLBACK HIT ===");
-        System.out.println("Received code=" + code);
-        System.out.println("CLIENT ID=" + clientId);
-        System.out.println("SECRET PRESENT=" + (clientSecret != null));
-
-        try {
-            String form = "client_id=" + clientId +
-                    "&client_secret=" + clientSecret +
-                    "&code=" + code;
-
-            // NOTE: Exchange MUST use body(String)
-            Map<String, Object> res = WebClient.builder()
-                    .baseUrl("https://github.com")
-                    .defaultHeader("Accept", "application/json")
-                    .defaultHeader("User-Agent", "focusforge-auth")
-                    .build()
-                    .post()
-                    .uri("/login/oauth/access_token")
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .bodyValue(form)   // <-- critical!
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block();
-
-            System.out.println("GitHub OAuth Exchange Response: " + res);
-
-            if (res == null || !res.containsKey("access_token")) {
-                System.out.println("GitHub OAuth Exchange Failed: " + res);
-                return ResponseEntity.status(400).body("Failed to exchange code: " + res);
-            }
-
-            String accessToken = (String) res.get("access_token");
-            System.out.println("ACCESS TOKEN SUCCESSFULLY RECEIVED: " + accessToken);
-
-            URI deep = URI.create("forgefocus://redirect?token=" + accessToken);
-
-            return ResponseEntity.status(302)
-                    .header(HttpHeaders.LOCATION, deep.toString())
-                    .build();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500)
-                    .body("GitHub callback processing error: " + e.getMessage());
-        }
-    }
 
 
 
@@ -141,65 +83,36 @@ public class AuthController {
     // Returns JWT for your app.
     // ------------------------------------------------------------------------
     @PostMapping("/github")
-    public ResponseEntity<?> verifyGithubAccessToken(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> verifyGithubAuth0Token(@RequestBody Map<String, String> body) {
 
-        String token = body.get("token");
-        if (token == null || token.isBlank()) {
-            return ResponseEntity.badRequest().body("Missing GitHub access token");
-        }
+        String idToken = body.get("token"); // Auth0 ID token
 
         try {
-            // 1) Fetch GitHub user profile
-            Map<String, Object> user = ghApi.get()
-                    .uri("/user")
-                    .headers(h -> h.setBearerAuth(token))
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block();
+            Auth0TokenVerifier verifier = new Auth0TokenVerifier("dev-fjosqdjeu3tei3ei.us.auth0.com");
+            Map<String, Object> claims = verifier.verify(idToken);
 
-            if (user == null || user.get("id") == null) {
-                return ResponseEntity.status(401).body("Invalid GitHub access token");
+            String email = (String) claims.get("email");
+            if (email == null || email.isBlank()) {
+                return ResponseEntity.status(400).body("Auth0 token missing email");
             }
 
-            // 2) Retrieve user email(s)
-            String email = null;
-            try {
-                List<Map<String, Object>> emails = ghApi.get()
-                        .uri("/user/emails")
-                        .headers(h -> h.setBearerAuth(token))
-                        .retrieve()
-                        .bodyToMono(List.class)
-                        .block();
+            String name = (String) claims.getOrDefault("nickname", claims.get("name"));
+            String picture = (String) claims.get("picture");
 
-                if (emails != null) {
-                    email = emails.stream()
-                            .filter(e -> Boolean.TRUE.equals(e.get("primary")) && Boolean.TRUE.equals(e.get("verified")))
-                            .map(e -> (String) e.get("email"))
-                            .findFirst()
-                            .orElse(null);
-                }
+            Map<String, Object> extra = new HashMap<>();
+            if (name != null) extra.put("name", name);
+            if (picture != null) extra.put("picture", picture);
+            // googleId intentionally not included for GitHub users
 
-            } catch (WebClientResponseException ignored) {
-                // Fallback to public email
-            }
-
-            if (email == null && user.get("email") instanceof String s && !s.isBlank()) {
-                email = s;
-            }
-
-            if (email == null) {
-                return ResponseEntity.status(400)
-                        .body("GitHub email not available. Enable 'user:email' scope or make email public.");
-            }
-
-            // 3) Generate JWT for your app
-            String jwt = jwtService.generateToken(email);
+            String jwt = jwtService.generateTokenWithClaims(email, extra);
 
             return ResponseEntity.ok(Map.of("access_token", jwt));
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("GitHub token verification failed");
+            return ResponseEntity.status(401).body("Invalid Auth0 GitHub token: " + e.getMessage());
         }
     }
-}
+
+    }
+
