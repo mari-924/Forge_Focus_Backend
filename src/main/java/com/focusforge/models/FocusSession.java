@@ -1,5 +1,6 @@
 package com.focusforge.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 @Table(name = "focus_sessions")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class FocusSession {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,5 +36,7 @@ public class FocusSession {
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     @Builder.Default
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+
     private Set<User> participants = new HashSet<>();
 }

@@ -15,9 +15,13 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 
 @RestController
+
 @RequestMapping("/users")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class UserController {
 
     private final UserRepository userRepository;

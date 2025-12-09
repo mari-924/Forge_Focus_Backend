@@ -1,5 +1,6 @@
 package com.focusforge.controllers;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.focusforge.models.FocusSession;
 import com.focusforge.models.User;
 import com.focusforge.repositories.FocusSessionRepository;
@@ -8,10 +9,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/sessions")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+
 public class FocusSessionController {
 
     private final FocusSessionRepository sessionRepository;
@@ -97,6 +102,45 @@ public class FocusSessionController {
 
         return ResponseEntity.ok(new UserSessionsResponse(previous, scheduled));
     }
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> updateSession(
+            @PathVariable Long id,
+            @RequestBody FocusSession updates
+    ) {
+        Optional<FocusSession> opt = sessionRepository.findById(id);
+        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+
+        FocusSession session = opt.get();
+
+        if (updates.getTitle() != null) session.setTitle(updates.getTitle());
+        if (updates.getDurationMinutes() != null) session.setDurationMinutes(updates.getDurationMinutes());
+        if (updates.getNotes() != null) session.setNotes(updates.getNotes());
+        if (updates.getAudioFile() != null) session.setAudioFile(updates.getAudioFile());
+        if (updates.getIsPrev() != null) session.setIsPrev(updates.getIsPrev());
+
+        FocusSession saved = sessionRepository.save(session);
+
+        // ⭐ FIXED: Map that allows null values
+        Map<String, Object> body = new HashMap<>();
+        body.put("id", saved.getId());
+        body.put("title", saved.getTitle());
+        body.put("durationMinutes", saved.getDurationMinutes());
+        body.put("audioFile", saved.getAudioFile());
+        body.put("notes", saved.getNotes());
+        body.put("isPrev", saved.getIsPrev());
+
+        return ResponseEntity.ok(body);
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteSession(@PathVariable Long id) {
+        if (!sessionRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        sessionRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
 
     public record UserSessionsResponse(
             java.util.List<FocusSession> previous,
