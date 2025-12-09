@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -101,7 +102,7 @@ public class FocusSessionController {
         return ResponseEntity.ok(new UserSessionsResponse(previous, scheduled));
     }
     @PatchMapping("/{id}")
-    public ResponseEntity<FocusSession> updateSession(
+    public ResponseEntity<?> updateSession(
             @PathVariable Long id,
             @RequestBody FocusSession updates
     ) {
@@ -117,8 +118,18 @@ public class FocusSessionController {
         if (updates.getIsPrev() != null) session.setIsPrev(updates.getIsPrev());
 
         FocusSession saved = sessionRepository.save(session);
-        return ResponseEntity.ok(saved);
+
+        // ⭐ Return a DTO instead of the entity
+        return ResponseEntity.ok(Map.of(
+                "id", saved.getId(),
+                "title", saved.getTitle(),
+                "duration", saved.getDurationMinutes(),
+                "audioFile", saved.getAudioFile(),
+                "notes", saved.getNotes(),
+                "isPrev", saved.getIsPrev()
+        ));
     }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteSession(@PathVariable Long id) {
         if (!sessionRepository.existsById(id)) {
