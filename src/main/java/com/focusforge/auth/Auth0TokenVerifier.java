@@ -18,7 +18,7 @@ public class Auth0TokenVerifier {
 
     private final String issuer;
     private final ConfigurableJWTProcessor<SecurityContext> processor;
-
+    @SuppressWarnings("deprecation")
     public Auth0TokenVerifier(String domain) throws Exception {
 
         this.issuer = "https://" + domain + "/";
