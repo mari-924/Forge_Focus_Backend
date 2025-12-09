@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -119,17 +120,17 @@ public class FocusSessionController {
 
         FocusSession saved = sessionRepository.save(session);
 
-        // ⭐ Return a DTO instead of the entity
-        return ResponseEntity.ok(Map.of(
-                "id", saved.getId(),
-                "title", saved.getTitle(),
-                "duration", saved.getDurationMinutes(),
-                "audioFile", saved.getAudioFile(),
-                "notes", saved.getNotes(),
-                "isPrev", saved.getIsPrev()
-        ));
-    }
+        // ⭐ FIXED: Map that allows null values
+        Map<String, Object> body = new HashMap<>();
+        body.put("id", saved.getId());
+        body.put("title", saved.getTitle());
+        body.put("durationMinutes", saved.getDurationMinutes());
+        body.put("audioFile", saved.getAudioFile());
+        body.put("notes", saved.getNotes());
+        body.put("isPrev", saved.getIsPrev());
 
+        return ResponseEntity.ok(body);
+    }
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteSession(@PathVariable Long id) {
         if (!sessionRepository.existsById(id)) {
