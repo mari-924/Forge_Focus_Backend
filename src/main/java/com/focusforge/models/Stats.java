@@ -19,15 +19,19 @@ public class Stats {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Builder.Default
     @Column(name = "total_focus_time")
     private Long totalFocusTime = 0L;
 
+    @Builder.Default
     @Column(name = "total_sessions")
     private Integer totalSessions = 0;
 
+    @Builder.Default
     @Column(name = "total_tasks")
     private Integer totalTasks = 0;
 
+    @Builder.Default
     @Column(name = "streak_days")
     private Integer streakDays = 0;
 
