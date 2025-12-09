@@ -97,6 +97,35 @@ public class FocusSessionController {
 
         return ResponseEntity.ok(new UserSessionsResponse(previous, scheduled));
     }
+    @PatchMapping("/{id}")
+    public ResponseEntity<FocusSession> updateSession(
+            @PathVariable Long id,
+            @RequestBody FocusSession updates
+    ) {
+        Optional<FocusSession> opt = sessionRepository.findById(id);
+        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+
+        FocusSession session = opt.get();
+
+        if (updates.getTitle() != null) session.setTitle(updates.getTitle());
+        if (updates.getDurationMinutes() != null) session.setDurationMinutes(updates.getDurationMinutes());
+        if (updates.getNotes() != null) session.setNotes(updates.getNotes());
+        if (updates.getAudioFile() != null) session.setAudioFile(updates.getAudioFile());
+        if (updates.getIsPrev() != null) session.setIsPrev(updates.getIsPrev());
+
+        FocusSession saved = sessionRepository.save(session);
+        return ResponseEntity.ok(saved);
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteSession(@PathVariable Long id) {
+        if (!sessionRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        sessionRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
 
     public record UserSessionsResponse(
             java.util.List<FocusSession> previous,
