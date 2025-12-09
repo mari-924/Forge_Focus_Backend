@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -84,7 +85,7 @@ public class AuthController {
     @PostMapping("/github")
     public ResponseEntity<?> verifyGithubAuth0Token(@RequestBody Map<String, String> body) {
 
-        String idToken = body.get("token"); // Auth0 ID token from Expo
+        String idToken = body.get("token"); // Auth0 ID token
 
         try {
             Auth0TokenVerifier verifier = new Auth0TokenVerifier("dev-fjosqdjeu3tei3ei.us.auth0.com");
@@ -95,21 +96,23 @@ public class AuthController {
                 return ResponseEntity.status(400).body("Auth0 token missing email");
             }
 
-            // Issue your backend JWT
-            String jwt = jwtService.generateTokenWithClaims(
-                    email,
-                    Map.of(
-                            "name", claims.get("nickname"),
-                            "picture", claims.get("picture"),
-                            "googleId", null  // GitHub login does NOT use googleId
-                    )
-            );
+            String name = (String) claims.getOrDefault("nickname", claims.get("name"));
+            String picture = (String) claims.get("picture");
+
+            Map<String, Object> extra = new HashMap<>();
+            if (name != null) extra.put("name", name);
+            if (picture != null) extra.put("picture", picture);
+            // googleId intentionally not included for GitHub users
+
+            String jwt = jwtService.generateTokenWithClaims(email, extra);
+
             return ResponseEntity.ok(Map.of("access_token", jwt));
 
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(401).body("Invalid Auth0 GitHub token: " + e.getMessage());
         }
+    }
 
     }
-}
+
