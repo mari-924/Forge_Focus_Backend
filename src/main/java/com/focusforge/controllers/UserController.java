@@ -49,15 +49,15 @@ public class UserController {
 
             // Extract info from token payload
             String email = claims.getSubject();
-            String name = (String) claims.get("name");
-            String googleId = (String) claims.get("googleId");
+            String name = (String) claims.getOrDefault("name", claims.get("nickname"));
+            String googleId = (String) claims.get("googleId");  // null for GitHub
             String picture = (String) claims.get("picture");
 
             // Look up user by email, or create if missing
             Optional<User> existingUser = userRepository.findByEmail(email);
             User user = existingUser.orElseGet(() -> {
                 User newUser = User.builder()
-                        .googleId(googleId)
+                        .googleId(googleId) // null ok
                         .name(name)
                         .email(email)
                         .profileImageUrl(picture)

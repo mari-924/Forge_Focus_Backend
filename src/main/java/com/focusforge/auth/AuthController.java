@@ -96,8 +96,14 @@ public class AuthController {
             }
 
             // Issue your backend JWT
-            String jwt = jwtService.generateToken(email);
-
+            String jwt = jwtService.generateTokenWithClaims(
+                    email,
+                    Map.of(
+                            "name", claims.get("nickname"),
+                            "picture", claims.get("picture"),
+                            "googleId", null  // GitHub login does NOT use googleId
+                    )
+            );
             return ResponseEntity.ok(Map.of("access_token", jwt));
 
         } catch (Exception e) {
