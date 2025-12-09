@@ -41,24 +41,27 @@ public class UserController {
         try {
             String token = authHeader.replace("Bearer ", "");
 
-            // Parse and validate JWT using your backend secret
             Claims claims = Jwts.parser()
                     .setSigningKey(jwtSecret)
                     .parseClaimsJws(token)
                     .getBody();
 
-            // Extract info from token payload
             String email = claims.getSubject();
-            String name = (String) claims.getOrDefault("name", claims.get("nickname"));
-            String googleId = (String) claims.get("googleId");  // null for GitHub
-            String picture = (String) claims.get("picture");
 
-            // Look up user by email, or create if missing
+            // GitHub-friendly claim extraction
+            String name = claims.get("name") != null
+                    ? (String) claims.get("name")
+                    : (String) claims.get("nickname");
+
+            String googleId = (String) claims.getOrDefault("googleId", null);
+            String picture = (String) claims.getOrDefault("picture", null);
+
             Optional<User> existingUser = userRepository.findByEmail(email);
+
             User user = existingUser.orElseGet(() -> {
                 User newUser = User.builder()
-                        .googleId(googleId) // null ok
-                        .name(name)
+                        .googleId(googleId)
+                        .name(name != null ? name : email)
                         .email(email)
                         .profileImageUrl(picture)
                         .createdAt(LocalDateTime.now())
@@ -74,6 +77,7 @@ public class UserController {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
+
 
     /** ✅ Get all users */
     @GetMapping
