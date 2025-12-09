@@ -1,5 +1,6 @@
 package com.focusforge.controllers;
 
+import com.focusforge.auth.JwtService;
 import com.focusforge.models.User;
 import com.focusforge.repositories.UserRepository;
 import io.jsonwebtoken.Claims;
@@ -20,13 +21,15 @@ import java.util.Optional;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final JwtService jwtService;   // <-- ADD THIS
 
     // Inject the same secret key used in /api/auth/google when signing the JWT
     @Value("${jwt.secret}")
     private String jwtSecret;
 
-    public UserController(UserRepository userRepository) {
+    public UserController(UserRepository userRepository, JwtService jwtService) {
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
     }
 
     /** ✅ Handles normal user creation (manual) */
@@ -39,62 +42,58 @@ public class UserController {
     @PostMapping("/signin")
     public ResponseEntity<?> signInOrSignUp(@RequestHeader("Authorization") String authHeader) {
         try {
-            System.out.println("🔥 /users/signin called");
-            System.out.println("🔥 Authorization header: " + authHeader);
-
             String token = authHeader.replace("Bearer ", "");
-            System.out.println("🔥 Extracted JWT: " + token);
 
-            Claims claims = Jwts.parser()
-                    .setSigningKey(jwtSecret)
-                    .parseClaimsJws(token)
-                    .getBody();
+            String email = jwtService.extractEmail(token);
+            String name = jwtService.extractClaim(token, "name");
+            String nickname = jwtService.extractClaim(token, "nickname");
+            String googleId = jwtService.extractClaim(token, "googleId");
+            String picture = jwtService.extractClaim(token, "picture");
 
-            System.out.println("🔥 JWT Claims: " + claims);
+            if (name == null) name = nickname;
+            if (name == null) name = email;
 
-            String email = claims.getSubject();
-            System.out.println("🔥 Email (subject): " + email);
+            // 🔥 Make effectively-final copies so lambdas can use them
+            final String fEmail = email;
+            final String fName = name;
+            final String fGoogleId = googleId;
+            final String fPicture = picture;
 
-            String name = claims.get("name") != null
-                    ? (String) claims.get("name")
-                    : (String) claims.get("nickname");
-            System.out.println("🔥 Name extracted: " + name);
-
-            String googleId = (String) claims.getOrDefault("googleId", null);
-            System.out.println("🔥 Google ID: " + googleId);
-
-            String picture = (String) claims.getOrDefault("picture", null);
-            System.out.println("🔥 Picture URL: " + picture);
-
-            // Lookup
             Optional<User> existingUser = userRepository.findByEmail(email);
-            System.out.println("🔥 existingUser present? " + existingUser.isPresent());
 
-            User user = existingUser.orElseGet(() -> {
-                System.out.println("🔥 Creating NEW user in DB...");
+            User user = existingUser.map(u -> {
+                boolean changed = false;
 
+                if (fGoogleId != null && !fGoogleId.equals(u.getGoogleId())) {
+                    u.setGoogleId(fGoogleId);
+                    changed = true;
+                }
+
+                if (fName != null && !fName.equals(u.getName())) {
+                    u.setName(fName);
+                    changed = true;
+                }
+
+                if (fPicture != null && !fPicture.equals(u.getProfileImageUrl())) {
+                    u.setProfileImageUrl(fPicture);
+                    changed = true;
+                }
+
+                return changed ? userRepository.save(u) : u;
+            }).orElseGet(() -> {
                 User newUser = User.builder()
-                        .googleId(googleId)
-                        .name(name != null ? name : email)
-                        .email(email)
-                        .profileImageUrl(picture)
+                        .googleId(fGoogleId)
+                        .name(fName)
+                        .email(fEmail)
+                        .profileImageUrl(fPicture)
                         .createdAt(LocalDateTime.now())
                         .build();
-
-                System.out.println("🔥 NEW USER BEFORE SAVE: " + newUser);
-
                 return userRepository.save(newUser);
             });
 
-            System.out.println("🔥 FINAL USER RETURNED: " + user);
-
             return ResponseEntity.ok(user);
 
-        } catch (JwtException e) {
-            System.out.println("❌ JWT EXCEPTION: " + e.getMessage());
-            return ResponseEntity.status(401).body("Invalid or expired JWT: " + e.getMessage());
         } catch (Exception e) {
-            System.out.println("❌ GENERAL EXCEPTION in /users/signin: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }

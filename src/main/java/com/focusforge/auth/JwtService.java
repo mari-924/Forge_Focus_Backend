@@ -65,7 +65,11 @@ public class JwtService {
         System.out.println("🔵 extractEmail() → using subject: " + claims.getSubject());
         return claims.getSubject();
     }
-
+    public String extractClaim(String token, String key) {
+        Claims claims = getAllClaims(token);
+        Object val = claims.get(key);
+        return val != null ? val.toString() : null;
+    }
     public boolean isTokenValid(String token) {
         try {
             Claims claims = getAllClaims(token);
