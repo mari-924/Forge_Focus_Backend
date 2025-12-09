@@ -21,6 +21,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
+@SuppressWarnings("unchecked")
 public class AuthController {
 
     private final JwtService jwtService;
