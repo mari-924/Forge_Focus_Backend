@@ -55,13 +55,14 @@ public class JwtService {
     public String extractEmail(String token) {
         Claims claims = getAllClaims(token);
 
-        // Preferred: email claim (Google + GitHub JWTs)
-        String email = claims.get("email", String.class);
-        if (email != null && !email.isBlank()) {
-            return email;
-        }
+        System.out.println("🔵 extractEmail() → Claims: " + claims);
 
-        // Fallback: subject (your own backend JWTs)
+        String email = claims.get("email", String.class);
+        System.out.println("🔵 extractEmail() → email claim: " + email);
+
+        if (email != null && !email.isBlank()) return email;
+
+        System.out.println("🔵 extractEmail() → using subject: " + claims.getSubject());
         return claims.getSubject();
     }
 

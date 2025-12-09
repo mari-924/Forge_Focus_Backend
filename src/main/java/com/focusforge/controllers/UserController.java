@@ -39,26 +39,40 @@ public class UserController {
     @PostMapping("/signin")
     public ResponseEntity<?> signInOrSignUp(@RequestHeader("Authorization") String authHeader) {
         try {
+            System.out.println("🔥 /users/signin called");
+            System.out.println("🔥 Authorization header: " + authHeader);
+
             String token = authHeader.replace("Bearer ", "");
+            System.out.println("🔥 Extracted JWT: " + token);
 
             Claims claims = Jwts.parser()
                     .setSigningKey(jwtSecret)
                     .parseClaimsJws(token)
                     .getBody();
 
-            String email = claims.getSubject();
+            System.out.println("🔥 JWT Claims: " + claims);
 
-            // GitHub-friendly claim extraction
+            String email = claims.getSubject();
+            System.out.println("🔥 Email (subject): " + email);
+
             String name = claims.get("name") != null
                     ? (String) claims.get("name")
                     : (String) claims.get("nickname");
+            System.out.println("🔥 Name extracted: " + name);
 
             String googleId = (String) claims.getOrDefault("googleId", null);
-            String picture = (String) claims.getOrDefault("picture", null);
+            System.out.println("🔥 Google ID: " + googleId);
 
+            String picture = (String) claims.getOrDefault("picture", null);
+            System.out.println("🔥 Picture URL: " + picture);
+
+            // Lookup
             Optional<User> existingUser = userRepository.findByEmail(email);
+            System.out.println("🔥 existingUser present? " + existingUser.isPresent());
 
             User user = existingUser.orElseGet(() -> {
+                System.out.println("🔥 Creating NEW user in DB...");
+
                 User newUser = User.builder()
                         .googleId(googleId)
                         .name(name != null ? name : email)
@@ -66,17 +80,26 @@ public class UserController {
                         .profileImageUrl(picture)
                         .createdAt(LocalDateTime.now())
                         .build();
+
+                System.out.println("🔥 NEW USER BEFORE SAVE: " + newUser);
+
                 return userRepository.save(newUser);
             });
+
+            System.out.println("🔥 FINAL USER RETURNED: " + user);
 
             return ResponseEntity.ok(user);
 
         } catch (JwtException e) {
+            System.out.println("❌ JWT EXCEPTION: " + e.getMessage());
             return ResponseEntity.status(401).body("Invalid or expired JWT: " + e.getMessage());
         } catch (Exception e) {
+            System.out.println("❌ GENERAL EXCEPTION in /users/signin: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
+
 
 
     /** ✅ Get all users */
