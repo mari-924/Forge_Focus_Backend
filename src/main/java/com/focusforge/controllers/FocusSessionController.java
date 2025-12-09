@@ -1,5 +1,6 @@
 package com.focusforge.controllers;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.focusforge.models.FocusSession;
 import com.focusforge.models.User;
 import com.focusforge.repositories.FocusSessionRepository;
@@ -12,6 +13,8 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/sessions")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+
 public class FocusSessionController {
 
     private final FocusSessionRepository sessionRepository;
