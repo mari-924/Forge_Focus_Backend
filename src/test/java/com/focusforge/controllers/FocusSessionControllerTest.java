@@ -45,7 +45,7 @@ public class FocusSessionControllerTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(host));
         when(sessionRepository.save(any(FocusSession.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ResponseEntity<FocusSession> response = controller.createSession(1L, null, session);
+        ResponseEntity<FocusSession> response = controller.createSession(1L, session);
 
         assertTrue(response.getStatusCode().is2xxSuccessful());
         assertNotNull(response.getBody());
