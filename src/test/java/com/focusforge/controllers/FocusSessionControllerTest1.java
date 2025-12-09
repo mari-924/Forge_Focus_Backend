@@ -18,7 +18,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-public class FocusSessionControllerTest {
+public class FocusSessionControllerTest1 {
 
     @Mock
     private FocusSessionRepository sessionRepository;
