@@ -21,5 +21,6 @@ public class User {
     private String email;
     private String profileImageUrl;
 
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

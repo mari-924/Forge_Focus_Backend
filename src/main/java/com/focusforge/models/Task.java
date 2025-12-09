@@ -21,7 +21,9 @@ public class Task {
     private FocusSession session;
 
     private String description;
+    @Builder.Default
     private Boolean isCompleted = false;
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime completedAt;
 }

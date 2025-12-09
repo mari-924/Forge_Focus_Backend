@@ -40,6 +40,7 @@ public class UserController {
 
     /** ✅ Automatically create or retrieve user based on backend-issued JWT */
     @PostMapping("/signin")
+    @SuppressWarnings("deprecation")
     public ResponseEntity<?> signInOrSignUp(@RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.replace("Bearer ", "");
